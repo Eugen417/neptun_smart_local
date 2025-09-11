@@ -165,10 +165,10 @@ class NeptunSmart:
                     self._lock_buttons = bool(self._config_bits[3])
                     
                     # Детальное логирование конфигурации
-                    _LOGGER.error(f"🔧 КОНФИГУРАЦИЯ МОДУЛЯ: dual_group_mode={self._dual_group_mode}, floor_washing={self._floor_washing_mode}, connecting_sensors={self._connecting_wireless_sensors_mode}")
-                    _LOGGER.error(f"🚰 СОСТОЯНИЕ ВЕНТИЛЕЙ: first_valve={self._first_group_valve_is_open}, second_valve={self._second_group_valve_is_open}")
-                    _LOGGER.error(f"⚠️ АВАРИИ: first_group_alarm={self._first_group_alarm}, second_group_alarm={self._second_group_alarm}")
-                    _LOGGER.error(f"📡 БЕСПРОВОДНЫЕ СЕНСОРЫ: discharge={self._discharge_wireless_sensors}, lost={self._lost_wireless_sensors}")
+                    # _LOGGER.debug(f"🔧 КОНФИГУРАЦИЯ МОДУЛЯ: dual_group_mode={self._dual_group_mode}, floor_washing={self._floor_washing_mode}, connecting_sensors={self._connecting_wireless_sensors_mode}")
+                    # _LOGGER.debug(f"🚰 СОСТОЯНИЕ ВЕНТИЛЕЙ: first_valve={self._first_group_valve_is_open}, second_valve={self._second_group_valve_is_open}")
+                    # _LOGGER.debug(f"⚠️ АВАРИИ: first_group_alarm={self._first_group_alarm}, second_group_alarm={self._second_group_alarm}")
+                    # _LOGGER.debug(f"📡 БЕСПРОВОДНЫЕ СЕНСОРЫ: discharge={self._discharge_wireless_sensors}, lost={self._lost_wireless_sensors}")
                 else:
                     _LOGGER.warning(f"Недостаточно битов в конфигурации модуля: получено {len(self._config_bits) if self._config_bits else 0} битов, требуется 16")
                     # Не обновляем состояние при проблемах с данными
@@ -224,8 +224,8 @@ class NeptunSmart:
                 if self._wireless_sensors_connected is None:
                     _LOGGER.debug("Не удалось получить количество подключенных беспроводных датчиков")
                     self._wireless_sensors_connected = 0
-                else:
-                    _LOGGER.error(f"📊 ПОДКЛЮЧЕНО БЕСПРОВОДНЫХ СЕНСОРОВ: {self._wireless_sensors_connected}")
+                # else:
+                #     _LOGGER.debug(f"📊 ПОДКЛЮЧЕНО БЕСПРОВОДНЫХ СЕНСОРОВ: {self._wireless_sensors_connected}")
         except TimeoutError:
             _LOGGER.warning(f"Polling timed out for {self._name} - устройство не отвечает")
             # Сбрасываем счетчик попыток, чтобы попробовать переподключиться в следующий раз

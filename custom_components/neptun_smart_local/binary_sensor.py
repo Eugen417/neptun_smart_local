@@ -1,13 +1,10 @@
 from __future__ import annotations
 
 from datetime import timedelta
-
-from homeassistant.components.binary_sensor import BinarySensorEntity
+from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorDeviceClass
 from homeassistant.helpers.entity import EntityCategory
+
 from .const import DOMAIN
-from homeassistant.components.binary_sensor import (
-    BinarySensorDeviceClass,
-)
 from . import NeptunSmart
 from .device import WirelessSensor
 
@@ -37,7 +34,6 @@ async def async_setup_entry(HomeAssistant, config_entry, async_add_entities):
 
 
 class MainModule(BinarySensorEntity):
-    """Основной модуль - общая авария системы"""
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
 
     def __init__(self, device: NeptunSmart):
@@ -64,13 +60,12 @@ class MainModule(BinarySensorEntity):
 
 
 class FirstGroupModuleAlert(BinarySensorEntity):
-    """Авария первой группы - датчик протечки воды"""
     _attr_device_class = BinarySensorDeviceClass.MOISTURE
 
     def __init__(self, device: NeptunSmart):
         self._device = device
         self._attr_unique_id = f"{device.get_name()}_first_group_alarm_module_alert"
-        self._attr_name = "First group water leak"
+        self._attr_name = "Протечка 1 группы"
 
     @property
     def device_info(self):
@@ -86,13 +81,12 @@ class FirstGroupModuleAlert(BinarySensorEntity):
 
 
 class SecondGroupModuleAlert(BinarySensorEntity):
-    """Авария второй группы - датчик протечки воды"""
     _attr_device_class = BinarySensorDeviceClass.MOISTURE
 
     def __init__(self, device: NeptunSmart):
         self._device = device
         self._attr_unique_id = f"{device.get_name()}_second_group_alarm_module_alert"
-        self._attr_name = "Second group water leak"
+        self._attr_name = "Протечка 2 группы"
 
     @property
     def device_info(self):
@@ -111,13 +105,12 @@ class SecondGroupModuleAlert(BinarySensorEntity):
 
 
 class DischargeWirelessSensors(BinarySensorEntity):
-    """Разряд беспроводных датчиков"""
     _attr_device_class = BinarySensorDeviceClass.BATTERY
 
     def __init__(self, device: NeptunSmart):
         self._device = device
         self._attr_unique_id = f"{device.get_name()}_discharge_wireless_sensors"
-        self._attr_name = "Wireless sensors battery low"
+        self._attr_name = "Разряд батареи радиодатчиков"
 
     @property
     def device_info(self):
@@ -133,13 +126,12 @@ class DischargeWirelessSensors(BinarySensorEntity):
 
 
 class LostWirelessSensors(BinarySensorEntity):
-    """Потеря связи с беспроводными датчиками"""
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
 
     def __init__(self, device: NeptunSmart):
         self._device = device
         self._attr_unique_id = f"{device.get_name()}_lost_wireless_sensors"
-        self._attr_name = "Wireless sensors connection lost"
+        self._attr_name = "Потеря связи с радиодатчиками"
 
     @property
     def device_info(self):
@@ -155,14 +147,13 @@ class LostWirelessSensors(BinarySensorEntity):
 
 
 class WiredLineAlertStatus(BinarySensorEntity):
-    """Статус аварии проводных линий"""
     _attr_device_class = BinarySensorDeviceClass.MOISTURE
 
     def __init__(self, device: NeptunSmart, line_number):
         self._device = device
         self._line_number = line_number
         self._attr_unique_id = f"{device.get_name()}_WiredAlertStatus_line{line_number}"
-        self._attr_name = f"Wired line {line_number} water leak"
+        self._attr_name = f"Протечка проводной линии {line_number}"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
@@ -179,7 +170,6 @@ class WiredLineAlertStatus(BinarySensorEntity):
 
 
 class WirelessSensorAlertStatus(BinarySensorEntity):
-    """Статус аварии беспроводного датчика"""
     _attr_device_class = BinarySensorDeviceClass.MOISTURE
 
     def __init__(self, device: NeptunSmart, sensor_number, sensor: WirelessSensor):
@@ -187,7 +177,7 @@ class WirelessSensorAlertStatus(BinarySensorEntity):
         self._sensor_number = sensor_number
         self._sensor = sensor
         self._attr_unique_id = f"{device.get_name()}_WirelessAlertStatus_sensor{sensor_number}"
-        self._attr_name = f"Wireless sensor {sensor_number} water leak"
+        self._attr_name = f"Протечка радиодатчика {sensor_number}"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
@@ -204,7 +194,6 @@ class WirelessSensorAlertStatus(BinarySensorEntity):
 
 
 class WirelessSensorDischargeStatus(BinarySensorEntity):
-    """Статус разряда беспроводного датчика"""
     _attr_device_class = BinarySensorDeviceClass.BATTERY
 
     def __init__(self, device: NeptunSmart, sensor_number, sensor: WirelessSensor):
@@ -212,7 +201,7 @@ class WirelessSensorDischargeStatus(BinarySensorEntity):
         self._sensor_number = sensor_number
         self._sensor = sensor
         self._attr_unique_id = f"{device.get_name()}_WirelessDischargeStatus_sensor{sensor_number}"
-        self._attr_name = f"Wireless sensor {sensor_number} battery low"
+        self._attr_name = f"Разряд батареи радиодатчика {sensor_number}"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
@@ -229,7 +218,6 @@ class WirelessSensorDischargeStatus(BinarySensorEntity):
 
 
 class WirelessSensorLostStatus(BinarySensorEntity):
-    """Статус потери связи с беспроводным датчиком"""
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
 
     def __init__(self, device: NeptunSmart, sensor_number, sensor: WirelessSensor):
@@ -237,7 +225,7 @@ class WirelessSensorLostStatus(BinarySensorEntity):
         self._sensor_number = sensor_number
         self._sensor = sensor
         self._attr_unique_id = f"{device.get_name()}_WirelessLostStatus_sensor{sensor_number}"
-        self._attr_name = f"Wireless sensor {sensor_number} connection lost"
+        self._attr_name = f"Потеря связи с радиодатчиком {sensor_number}"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property

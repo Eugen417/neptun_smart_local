@@ -47,7 +47,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER,
         name=f"{name}_update_coordinator",
         update_method=async_update_data,
-        update_interval=timedelta(seconds=10),
+        update_interval=timedelta(seconds=5),
     )
 
     # Делаем первый опрос до загрузки платформ

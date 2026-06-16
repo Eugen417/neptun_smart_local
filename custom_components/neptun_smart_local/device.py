@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import datetime
 import logging
 import async_timeout
 from asyncio.exceptions import InvalidStateError
@@ -14,6 +13,7 @@ from .hub import modbus_hub
 from .registers import NeptunSmartRegisters
 
 _LOGGER = logging.getLogger(__name__)
+
 class NeptunSmart:
     def __init__(self, hass: HomeAssistant, name, host_ip: str | None, host_port) ->None:
         self._name = name
@@ -26,7 +26,6 @@ class NeptunSmart:
         self.counters = []
         self._wireless_sensors_connected = 0
         
-        # Инициализируем атрибуты, которые используются в update()
         self._first_group_valve_is_open = False
         self._second_group_valve_is_open = False
         self._floor_washing_mode = False
@@ -41,14 +40,12 @@ class NeptunSmart:
         self._switch_when_close_valve = 0
         self._switch_when_alert = 0
         
-        # Инициализируем битовые массивы
         self._config_bits = None
         self._config_line_1_2_bits = None
         self._config_line_3_4_bits = None
         self._status_wired_line_bits = None
         self._relay_config_bits = None
         
-        # Флаг для отслеживания состояния подключения
         self._connection_attempts = 0
         self._last_connection_attempt = 0
         self._is_connected = False
@@ -58,16 +55,14 @@ class NeptunSmart:
             await self._hub.connect()
         except (ValueError, asyncio.CancelledError) as e:
             _LOGGER.error(f"Не удалось подключиться к устройству {self._name}: {e}")
-            # Не выбрасываем исключение, чтобы интеграция могла работать в автономном режиме
             return
         
         try:
             self._wireless_sensors_connected = await self._hub.read_holding_register_uint16(
                 NeptunSmartRegisters.count_of_connected_wireless_sensors, 1)
             
-            # Проверяем, что мы получили корректное значение
             if self._wireless_sensors_connected is None:
-                _LOGGER.debug("Не удалось получить количество подключенных беспроводных датчиков, используем значение по умолчанию 0")
+                _LOGGER.debug("Не удалось получить количество подключенных беспроводных датчиков, используем значение 0")
                 self._wireless_sensors_connected = 0
             
             for i in range(0, self._wireless_sensors_connected):
@@ -77,7 +72,6 @@ class NeptunSmart:
                     wireless_sensor_status_bits = await self._hub.read_holding_register_bits(
                         NeptunSmartRegisters.first_wireless_sensor_status + i, 1)
                     
-                    # Проверяем, что данные получены корректно
                     if wireless_sensor_config is not None and wireless_sensor_status_bits is not None:
                         self.wireless_sensors.append(
                             WirelessSensor(self._hub, NeptunSmartRegisters.first_wireless_sensor_config + i,
@@ -105,53 +99,40 @@ class NeptunSmart:
                     _LOGGER.warning(f"Ошибка при инициализации счетчика {i}: {e}")
         except Exception as e:
             _LOGGER.error(f"Ошибка при инициализации датчиков для {self._name}: {e}")
-            # Продолжаем работу даже при ошибках инициализации
 
     async def _check_and_reconnect(self):
-        """Проверяет подключение и пытается переподключиться при необходимости"""
         try:
-            # Простая проверка - если клиент подключен, считаем что подключение есть
             if hasattr(self._hub, '_client') and self._hub._client.connected:
                 self._is_connected = True
                 return True
             
-            # Если не подключен, пытаемся подключиться
             _LOGGER.info(f"Попытка подключения к устройству {self._name}")
             await self._hub.connect()
-            
-            # Добавляем небольшую задержку после подключения для стабилизации
             await asyncio.sleep(0.2)
             
             self._is_connected = True
-            _LOGGER.info(f"Успешно подключились к устройству {self._name}")
             return True
         except Exception as e:
-            _LOGGER.error(f"Не удалось подключиться к устройству {self._name}: {e}")
+            _LOGGER.debug(f"Не удалось подключиться к устройству {self._name}: {e}")
             self._is_connected = False
             return False
 
     async def update(self):
         try:
-            # Проверяем подключение
             if not await self._check_and_reconnect():
-                _LOGGER.debug(f"Не удалось подключиться к устройству {self._name}, пропускаем обновление")
                 self._is_connected = False
                 return
                 
             async with async_timeout.timeout(15):
                 self._config_bits = await self._hub.read_holding_register_bits(NeptunSmartRegisters.module_config, 1)
                 
-                # Проверяем, что данные получены корректно
                 if self._config_bits is None:
-                    _LOGGER.debug("Не удалось получить конфигурационные биты модуля")
                     self._is_connected = False
                     return
                 
-                # Если данные получены успешно, считаем что подключение активно
                 self._is_connected = True
                 
-                # Обновляем состояние только если данные получены корректно
-                if self._config_bits is not None and len(self._config_bits) >= 16:  # Проверяем, что у нас достаточно битов
+                if self._config_bits is not None and len(self._config_bits) >= 16:
                     self._first_group_valve_is_open = bool(self._config_bits[7])
                     self._second_group_valve_is_open = bool(self._config_bits[6])
                     self._floor_washing_mode = bool(self._config_bits[15])
@@ -163,95 +144,60 @@ class NeptunSmart:
                     self._dual_group_mode = bool(self._config_bits[5])
                     self._close_valve_when_loss_sensor = bool(self._config_bits[4])
                     self._lock_buttons = bool(self._config_bits[3])
-                    
-                    # Детальное логирование конфигурации
-                    # _LOGGER.debug(f"🔧 КОНФИГУРАЦИЯ МОДУЛЯ: dual_group_mode={self._dual_group_mode}, floor_washing={self._floor_washing_mode}, connecting_sensors={self._connecting_wireless_sensors_mode}")
-                    # _LOGGER.debug(f"🚰 СОСТОЯНИЕ ВЕНТИЛЕЙ: first_valve={self._first_group_valve_is_open}, second_valve={self._second_group_valve_is_open}")
-                    # _LOGGER.debug(f"⚠️ АВАРИИ: first_group_alarm={self._first_group_alarm}, second_group_alarm={self._second_group_alarm}")
-                    # _LOGGER.debug(f"📡 БЕСПРОВОДНЫЕ СЕНСОРЫ: discharge={self._discharge_wireless_sensors}, lost={self._lost_wireless_sensors}")
                 else:
-                    _LOGGER.warning(f"Недостаточно битов в конфигурации модуля: получено {len(self._config_bits) if self._config_bits else 0} битов, требуется 16")
-                    # Не обновляем состояние при проблемах с данными
                     return
+
                 self._config_line_1_2_bits = await self._hub.read_holding_register_bits(NeptunSmartRegisters.input_line_1_2_config, 1)
-                
-                # Проверяем, что данные получены корректно
                 if self._config_line_1_2_bits is not None:
                     self._line_type[1] = bool(self._config_line_1_2_bits[5])
                     self._line_type[2] = bool(self._config_line_1_2_bits[13])
-                    self._line_group[1] = BitArray([self._config_line_1_2_bits[6], self._config_line_1_2_bits[
-                        7]])._getuint()  # 1 = first group, 2 = second group, 3 = both groups
-                    self._line_group[2] = BitArray([self._config_line_1_2_bits[14], self._config_line_1_2_bits[
-                        15]])._getuint()  # 1 = first group, 2 = second group, 3 = both groups
-                else:
-                    _LOGGER.debug("Не удалось получить конфигурационные биты линий 1-2")
-                self._config_line_3_4_bits = await self._hub.read_holding_register_bits(NeptunSmartRegisters.input_line_3_4_config, 1)
+                    self._line_group[1] = BitArray([self._config_line_1_2_bits[6], self._config_line_1_2_bits[7]])._getuint()
+                    self._line_group[2] = BitArray([self._config_line_1_2_bits[14], self._config_line_1_2_bits[15]])._getuint()
                 
-                # Проверяем, что данные получены корректно
+                self._config_line_3_4_bits = await self._hub.read_holding_register_bits(NeptunSmartRegisters.input_line_3_4_config, 1)
                 if self._config_line_3_4_bits is not None:
                     self._line_type[3] = bool(self._config_line_3_4_bits[5])
                     self._line_type[4] = bool(self._config_line_3_4_bits[13])
-                    self._line_group[3] = BitArray([self._config_line_3_4_bits[6], self._config_line_3_4_bits[
-                        7]])._getuint()  # 1 = first group, 2 = second group, 3 = both groups
-                    self._line_group[4] = BitArray([self._config_line_3_4_bits[14], self._config_line_3_4_bits[
-                        15]])._getuint()  # 1 = first group, 2 = second group, 3 = both groups
-                else:
-                    _LOGGER.debug("Не удалось получить конфигурационные биты линий 3-4")
-                self._status_wired_line_bits = await self._hub.read_holding_register_bits(NeptunSmartRegisters.status_wired_line, 1)
+                    self._line_group[3] = BitArray([self._config_line_3_4_bits[6], self._config_line_3_4_bits[7]])._getuint()
+                    self._line_group[4] = BitArray([self._config_line_3_4_bits[14], self._config_line_3_4_bits[15]])._getuint()
                 
-                # Проверяем, что данные получены корректно
+                self._status_wired_line_bits = await self._hub.read_holding_register_bits(NeptunSmartRegisters.status_wired_line, 1)
                 if self._status_wired_line_bits is not None:
                     self._line_status[1] = bool(self._status_wired_line_bits[15])
                     self._line_status[2] = bool(self._status_wired_line_bits[14])
                     self._line_status[3] = bool(self._status_wired_line_bits[13])
                     self._line_status[4] = bool(self._status_wired_line_bits[12])
-                else:
-                    _LOGGER.debug("Не удалось получить статус проводных линий")
                 
                 self._relay_config_bits = await self._hub.read_holding_register_bits(NeptunSmartRegisters.relay_config, 1)
-                
-                # Проверяем, что данные получены корректно
                 if self._relay_config_bits is not None:
                     self._switch_when_close_valve = BitArray([self._relay_config_bits[12], self._relay_config_bits[13]])._getuint()
                     self._switch_when_alert = BitArray([self._relay_config_bits[14], self._relay_config_bits[15]])._getuint()
-                else:
-                    _LOGGER.debug("Не удалось получить конфигурацию реле")
                 
                 self._wireless_sensors_connected = await self._hub.read_holding_register_uint16(
                     NeptunSmartRegisters.count_of_connected_wireless_sensors, 1)
-                
-                # Проверяем, что данные получены корректно
                 if self._wireless_sensors_connected is None:
-                    _LOGGER.debug("Не удалось получить количество подключенных беспроводных датчиков")
                     self._wireless_sensors_connected = 0
-                # else:
-                #     _LOGGER.debug(f"📊 ПОДКЛЮЧЕНО БЕСПРОВОДНЫХ СЕНСОРОВ: {self._wireless_sensors_connected}")
+
         except TimeoutError:
-            _LOGGER.warning(f"Polling timed out for {self._name} - устройство не отвечает")
-            # Сбрасываем счетчик попыток, чтобы попробовать переподключиться в следующий раз
             self._connection_attempts = 0
             self._is_connected = False
             return
-        except ModbusIOException as value_error:
-            _LOGGER.warning(f"ModbusIOException for {self._name}: {value_error.string}")
-            # Сбрасываем счетчик попыток, чтобы попробовать переподключиться в следующий раз
+        except ModbusIOException:
             self._connection_attempts = 0
             self._is_connected = False
             return
-        except ModbusException as value_error:
-            _LOGGER.warning(f"ModbusException for {self._name}: {value_error.string}")
-            # Сбрасываем счетчик попыток, чтобы попробовать переподключиться в следующий раз
+        except ModbusException:
             self._connection_attempts = 0
             self._is_connected = False
             return
-        except InvalidStateError as ex:
-            _LOGGER.error(f"InvalidStateError Exceptions for {self._name}")
+        except InvalidStateError:
             self._is_connected = False
             return
         except Exception as e:
             _LOGGER.error(f"Неожиданная ошибка при обновлении {self._name}: {e}")
             self._is_connected = False
             return
+
         for sensor in self.wireless_sensors:
             await sensor.update()
         for counter in self.counters:
@@ -283,55 +229,61 @@ class NeptunSmart:
             async with async_timeout.timeout(5):
                 await self._hub.write_holding_register_bits(NeptunSmartRegisters.module_config, self._config_bits)
         except TimeoutError:
-            _LOGGER.warning("Pulling timed out")
             return
         except ModbusException as value_error:
-            _LOGGER.warning(f"Error write config register, modbus Exception {value_error.string}")
+            _LOGGER.warning(f"Error write config register: {value_error.string}")
             return
-        except InvalidStateError as ex:
-            _LOGGER.error(f"InvalidStateError Exceptions")
+        except InvalidStateError:
             return
-    async def set_first_group_valve_state(self,state):
+
+    async def set_first_group_valve_state(self, state):
         self._first_group_valve_is_open = state
-        self._config_bits[7] = int(state)
-        await self.write_config_register()
+        if self._config_bits is not None:
+            self._config_bits[7] = int(state)
+            await self.write_config_register()
+        else:
+            _LOGGER.warning("Не удалось переключить вентиль: нет данных от устройства")
 
     def get_second_group_valve_state(self):
         return self._second_group_valve_is_open
 
-    async def set_second_group_valve_state(self,state):
+    async def set_second_group_valve_state(self, state):
         self._second_group_valve_is_open = state
-        self._config_bits[6] = int(state)
-        await self.write_config_register()
+        if self._config_bits is not None:
+            self._config_bits[6] = int(state)
+            await self.write_config_register()
+        else:
+            _LOGGER.warning("Не удалось переключить вентиль: нет данных от устройства")
 
     def get_floor_washing_mode(self):
         return self._floor_washing_mode
 
     async def set_floor_washing_mode(self, state):
         self._floor_washing_mode = state
-        self._config_bits[15] = int(state)
-        await self.write_config_register()
+        if self._config_bits is not None:
+            self._config_bits[15] = int(state)
+            await self.write_config_register()
 
     def get_connecting_wireless_sensors_mode(self):
         return self._connecting_wireless_sensors_mode
 
-    async def set_connecting_wireless_sensors_mode(self,state):
+    async def set_connecting_wireless_sensors_mode(self, state):
         self._connecting_wireless_sensors_mode = state
-        self._config_bits[8] = int(state)
-        await self.write_config_register()
+        if self._config_bits is not None:
+            self._config_bits[8] = int(state)
+            await self.write_config_register()
 
     def get_dual_group_mode(self):
         return self._dual_group_mode
     
     def is_connected(self):
-        """Возвращает состояние подключения к устройству"""
         return self._is_connected
 
-    async def set_dual_group_mode(self,state):
+    async def set_dual_group_mode(self, state):
         self._dual_group_mode = state
-        self._config_bits[5] = int(state)
-        await self.write_config_register()
-        #прописываем везде обе зоны
+        if self._config_bits is not None:
+            self._config_bits[5] = int(state)
+            await self.write_config_register()
         for i in (1, 2, 3, 4):
             await self.set_line_group(i, 3)
         for sensor in self.wireless_sensors:
@@ -340,18 +292,20 @@ class NeptunSmart:
     def get_close_valve_when_lost_sensors_mode(self):
         return self._close_valve_when_loss_sensor
 
-    async def set_close_valve_when_lost_sensors_mode(self,state):
+    async def set_close_valve_when_lost_sensors_mode(self, state):
         self._close_valve_when_loss_sensor = state
-        self._config_bits[4] = int(state)
-        await self.write_config_register()
+        if self._config_bits is not None:
+            self._config_bits[4] = int(state)
+            await self.write_config_register()
 
     def get_lock_buttons(self):
         return self._lock_buttons
 
-    async def set_lock_buttons(self,state):
+    async def set_lock_buttons(self, state):
         self._lock_buttons = state
-        self._config_bits[3] = int(state)
-        await self.write_config_register()
+        if self._config_bits is not None:
+            self._config_bits[3] = int(state)
+            await self.write_config_register()
 
     def get_line_config_type(self, line_number):
         return self._line_type[line_number]
@@ -365,7 +319,6 @@ class NeptunSmart:
         return self._line_group[line_number]
 
     async def set_line_group(self, line_number, state):
-        # 1 = first group, 2 = second group, 3 = both groups
         self._line_group[line_number] = state
         if line_number == 1:
             await self._set_bit_to_line_1_2_group(line_number, 6, 7)
@@ -378,50 +331,51 @@ class NeptunSmart:
         await self.write_line_config_register()
 
     async def _set_bit_to_line_1_2_group(self, line_number, bit1, bit2):
-        if self._line_group[line_number] == 1:
-            self._config_line_1_2_bits[bit1] = 0
-            self._config_line_1_2_bits[bit2] = 1
-        elif self._line_group[line_number] == 2:
-            self._config_line_1_2_bits[bit1] = 1
-            self._config_line_1_2_bits[bit2] = 0
-        else:
-            self._config_line_1_2_bits[bit1] = 1
-            self._config_line_1_2_bits[bit2] = 1
+        if self._config_line_1_2_bits is not None:
+            if self._line_group[line_number] == 1:
+                self._config_line_1_2_bits[bit1] = 0
+                self._config_line_1_2_bits[bit2] = 1
+            elif self._line_group[line_number] == 2:
+                self._config_line_1_2_bits[bit1] = 1
+                self._config_line_1_2_bits[bit2] = 0
+            else:
+                self._config_line_1_2_bits[bit1] = 1
+                self._config_line_1_2_bits[bit2] = 1
 
     async def _set_bit_to_line_3_4_group(self, line_number, bit1, bit2):
-        if self._line_group[line_number] == 1:
-            self._config_line_3_4_bits[bit1] = 0
-            self._config_line_3_4_bits[bit2] = 1
-        elif self._line_group[line_number] == 2:
-            self._config_line_3_4_bits[bit1] = 1
-            self._config_line_3_4_bits[bit2] = 0
-        else:
-            self._config_line_3_4_bits[bit1] = 1
-            self._config_line_3_4_bits[bit2] = 1
+        if self._config_line_3_4_bits is not None:
+            if self._line_group[line_number] == 1:
+                self._config_line_3_4_bits[bit1] = 0
+                self._config_line_3_4_bits[bit2] = 1
+            elif self._line_group[line_number] == 2:
+                self._config_line_3_4_bits[bit1] = 1
+                self._config_line_3_4_bits[bit2] = 0
+            else:
+                self._config_line_3_4_bits[bit1] = 1
+                self._config_line_3_4_bits[bit2] = 1
 
     def _set_bit_to_line_type(self):
-        # update config bits
-        self._config_line_1_2_bits[5] = self._line_type[1]
-        self._config_line_1_2_bits[13] = self._line_type[2]
-        self._config_line_3_4_bits[5] = self._line_type[3]
-        self._config_line_3_4_bits[13] = self._line_type[4]
+        if self._config_line_1_2_bits is not None:
+            self._config_line_1_2_bits[5] = self._line_type[1]
+            self._config_line_1_2_bits[13] = self._line_type[2]
+        if self._config_line_3_4_bits is not None:
+            self._config_line_3_4_bits[5] = self._line_type[3]
+            self._config_line_3_4_bits[13] = self._line_type[4]
 
     async def write_line_config_register(self):
-        # self._hub.connect()
         try:
             async with async_timeout.timeout(5):
-                await self._hub.write_holding_register_bits(NeptunSmartRegisters.input_line_1_2_config, self._config_line_1_2_bits)
-                await self._hub.write_holding_register_bits(NeptunSmartRegisters.input_line_3_4_config, self._config_line_3_4_bits)
+                if self._config_line_1_2_bits is not None:
+                    await self._hub.write_holding_register_bits(NeptunSmartRegisters.input_line_1_2_config, self._config_line_1_2_bits)
+                if self._config_line_3_4_bits is not None:
+                    await self._hub.write_holding_register_bits(NeptunSmartRegisters.input_line_3_4_config, self._config_line_3_4_bits)
         except TimeoutError:
-            _LOGGER.warning("Pulling timed out")
             return
         except ModbusException as value_error:
-            _LOGGER.warning(f"Error write line config register, modbus Exception {value_error.string}")
+            _LOGGER.warning(f"Error write line config register: {value_error.string}")
             return
-        except InvalidStateError as ex:
-            _LOGGER.error(f"InvalidStateError Exceptions")
+        except InvalidStateError:
             return
-        # self._hub.disconnect()
 
     def get_line_status(self, line_number):
         return self._line_status[line_number]
@@ -431,32 +385,32 @@ class NeptunSmart:
 
     async def set_relay_config_valve(self, state):
         self._switch_when_close_valve = state
-        if self._switch_when_close_valve == 0:
-            self._relay_config_bits[12] = 0
-            self._relay_config_bits[13] = 0
-        elif self._switch_when_close_valve == 1:
-            self._relay_config_bits[12] = 0
-            self._relay_config_bits[13] = 1
-        elif self._switch_when_close_valve == 2:
-            self._relay_config_bits[12] = 1
-            self._relay_config_bits[13] = 0
-        else:
-            self._relay_config_bits[12] = 1
-            self._relay_config_bits[13] = 3
-        await self._write_relay_config_register()
+        if self._relay_config_bits is not None:
+            if self._switch_when_close_valve == 0:
+                self._relay_config_bits[12] = 0
+                self._relay_config_bits[13] = 0
+            elif self._switch_when_close_valve == 1:
+                self._relay_config_bits[12] = 0
+                self._relay_config_bits[13] = 1
+            elif self._switch_when_close_valve == 2:
+                self._relay_config_bits[12] = 1
+                self._relay_config_bits[13] = 0
+            else:
+                self._relay_config_bits[12] = 1
+                self._relay_config_bits[13] = 3
+            await self._write_relay_config_register()
 
     async def _write_relay_config_register(self):
         try:
             async with async_timeout.timeout(5):
-                await self._hub.write_holding_register_bits(NeptunSmartRegisters.relay_config, self._relay_config_bits)
+                if self._relay_config_bits is not None:
+                    await self._hub.write_holding_register_bits(NeptunSmartRegisters.relay_config, self._relay_config_bits)
         except TimeoutError:
-            _LOGGER.warning("Pulling timed out")
             return
         except ModbusException as value_error:
-            _LOGGER.warning(f"Error write relay config register, modbus Exception {value_error.string}")
+            _LOGGER.warning(f"Error write relay config register: {value_error.string}")
             return
-        except InvalidStateError as ex:
-            _LOGGER.error(f"InvalidStateError Exception")
+        except InvalidStateError:
             return
 
     def get_relay_config_alert(self) -> int:
@@ -464,26 +418,27 @@ class NeptunSmart:
 
     async def set_relay_config_alert(self, state):
         self._switch_when_alert = state
-        if self._switch_when_alert == 0:
-            self._relay_config_bits[14] = 0
-            self._relay_config_bits[15] = 0
-        elif self._switch_when_alert == 1:
-            self._relay_config_bits[14] = 0
-            self._relay_config_bits[15] = 1
-        elif self._switch_when_alert == 2:
-            self._relay_config_bits[14] = 1
-            self._relay_config_bits[15] = 0
-        else:
-            self._relay_config_bits[14] = 1
-            self._relay_config_bits[15] = 3
-        await self._write_relay_config_register()
+        if self._relay_config_bits is not None:
+            if self._switch_when_alert == 0:
+                self._relay_config_bits[14] = 0
+                self._relay_config_bits[15] = 0
+            elif self._switch_when_alert == 1:
+                self._relay_config_bits[14] = 0
+                self._relay_config_bits[15] = 1
+            elif self._switch_when_alert == 2:
+                self._relay_config_bits[14] = 1
+                self._relay_config_bits[15] = 0
+            else:
+                self._relay_config_bits[14] = 1
+                self._relay_config_bits[15] = 3
+            await self._write_relay_config_register()
 
 
 class WirelessSensor():
     def __init__(self, hub: modbus_hub, address_config, address_value, config, status_bits):
         self._hub = hub
         self._address_config = address_config
-        self._address_value = address_value #получаем адреса, запрашиавем данные, получаем уникальные идентификаторы
+        self._address_value = address_value
         self.update_data(config, status_bits)
 
     async def update(self):
@@ -494,22 +449,15 @@ class WirelessSensor():
                 wireless_sensor_status_bits = await self._hub.read_holding_register_bits(
                     self._address_value, 1)
                 
-                # Проверяем, что данные получены корректно
                 if wireless_sensor_config is not None and wireless_sensor_status_bits is not None:
                     self.update_data(wireless_sensor_config, wireless_sensor_status_bits)
-                else:
-                    _LOGGER.debug(f"Не удалось получить данные для беспроводного датчика {self._address_config}")
         except TimeoutError:
-            _LOGGER.debug(f"Polling WirelessSensor {self._address_config} status timed out")
             return
-        except ModbusException as value_error:
-            _LOGGER.debug(f"Error update wireless sensor {self._address_config} modbus Exception {value_error.string}")
+        except ModbusException:
             return
-        except InvalidStateError as ex:
-            _LOGGER.debug(f"InvalidStateError Exception for wireless sensor {self._address_config}")
+        except InvalidStateError:
             return
-        except Exception as e:
-            _LOGGER.debug(f"Unexpected error updating wireless sensor {self._address_config}: {e}")
+        except Exception:
             return
 
     def update_data(self, config, status_bits):
@@ -531,14 +479,10 @@ class WirelessSensor():
             async with async_timeout.timeout(5):
                 await self._hub.write_holding_register(address=self._address_config, value=config)
         except TimeoutError:
-            _LOGGER.warning("Pulling timed out")
             return
-        except ModbusException as value_error:
-            _LOGGER.error(
-                f"Error set group wireless sensor {self._address_config} modbus Exception {value_error.string}")
+        except ModbusException:
             return
-        except InvalidStateError as ex:
-            _LOGGER.error(f"InvalidStateError Exception")
+        except InvalidStateError:
             return
 
     def get_battery_level(self):
@@ -572,19 +516,13 @@ class Counter():
                 result = await self._hub.read_holding_register_uint32(self._address, 2)
                 if result is not None:
                     self._value = result
-                else:
-                    _LOGGER.debug(f"Не удалось получить значение счетчика {self._address}")
         except TimeoutError:
-            _LOGGER.debug(f"Polling counter {self._address} timed out")
             return
-        except ModbusException as value_error:
-            _LOGGER.debug(f"Error update counter {self._address} modbus Exception {value_error.string}")
+        except ModbusException:
             return
-        except InvalidStateError as ex:
-            _LOGGER.debug(f"InvalidStateError Exception for counter {self._address}")
+        except InvalidStateError:
             return
-        except Exception as e:
-            _LOGGER.debug(f"Unexpected error updating counter {self._address}: {e}")
+        except Exception:
             return
 
     def get_value(self):

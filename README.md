@@ -9,6 +9,9 @@
 
 # Установка
 ## Вариант 1 через HACS
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Eugen417&repository=neptun_smart_local&category=integration)
+
 1) Добавить репозиторий https://github.com/sergeylysov/neptun_smart_local/ в HACS. Перейти в HACS -> Интеграции -> Спарва сверху 3 точки -> Пользовательские репозитории, вставить ссылку и выбрать категорию "Интеграция" -> Добавить.
 2) Перезагрузить HA.
 3) Настроить интеграцию - Конфигурация -> Устройства и службы -> Добавить интеграцию, в поиске ввести Neptun, выбрать интеграцию "Neptun Smart Local"

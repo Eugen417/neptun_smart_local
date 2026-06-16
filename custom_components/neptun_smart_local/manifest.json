@@ -1,7 +1,7 @@
 {
   "domain": "neptun_smart_local",
   "name": "Neptun Smart local integration",
-  "codeowners": ["@sergeylysov"],
+  "codeowners": ["@sergeylysov", "@Eugen417"],
   "config_flow": true,
   "dependencies": ["modbus"],
   "documentation": "https://github.com/sergeylysov/neptun_smart_local",

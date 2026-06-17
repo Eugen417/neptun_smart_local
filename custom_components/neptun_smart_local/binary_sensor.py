@@ -3,12 +3,11 @@ from __future__ import annotations
 from datetime import timedelta
 from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorDeviceClass
 from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from . import NeptunSmart
 from .device import WirelessSensor
-
-SCAN_INTERVAL = timedelta(seconds=10)
 
 async def async_setup_entry(HomeAssistant, config_entry, async_add_entities):
     device: NeptunSmart = HomeAssistant.data[DOMAIN][config_entry.entry_id]
@@ -33,10 +32,11 @@ async def async_setup_entry(HomeAssistant, config_entry, async_add_entities):
     async_add_entities(binary_sensors, update_before_add=False)
 
 
-class MainModule(BinarySensorEntity):
+class MainModule(CoordinatorEntity, BinarySensorEntity):
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
 
     def __init__(self, device: NeptunSmart):
+        super().__init__(device.coordinator)
         self._device = device
         self._attr_unique_id = self._device.get_name()
         self._attr_name = self._device.get_name()
@@ -48,6 +48,7 @@ class MainModule(BinarySensorEntity):
             "name": self._device.get_name(),
             "model": "Neptun Smart",
             "manufacturer": "Teploluxe",
+            "sw_version": "1.2.2",
         }
 
     @property
@@ -59,10 +60,11 @@ class MainModule(BinarySensorEntity):
         return self._device.get_first_group_alarm() or self._device.get_second_group_alarm()
 
 
-class FirstGroupModuleAlert(BinarySensorEntity):
+class FirstGroupModuleAlert(CoordinatorEntity, BinarySensorEntity):
     _attr_device_class = BinarySensorDeviceClass.MOISTURE
 
     def __init__(self, device: NeptunSmart):
+        super().__init__(device.coordinator)
         self._device = device
         self._attr_unique_id = f"{device.get_name()}_first_group_alarm_module_alert"
         self._attr_name = "Протечка 1 группы"
@@ -80,10 +82,11 @@ class FirstGroupModuleAlert(BinarySensorEntity):
         return self._device.get_first_group_alarm()
 
 
-class SecondGroupModuleAlert(BinarySensorEntity):
+class SecondGroupModuleAlert(CoordinatorEntity, BinarySensorEntity):
     _attr_device_class = BinarySensorDeviceClass.MOISTURE
 
     def __init__(self, device: NeptunSmart):
+        super().__init__(device.coordinator)
         self._device = device
         self._attr_unique_id = f"{device.get_name()}_second_group_alarm_module_alert"
         self._attr_name = "Протечка 2 группы"
@@ -100,14 +103,16 @@ class SecondGroupModuleAlert(BinarySensorEntity):
     def is_on(self) -> bool:
         return self._device.get_second_group_alarm()
 
-    async def async_update(self) -> None:
-        self._attr_available = self._device.get_dual_group_mode()
+    @property
+    def available(self) -> bool:
+        return self._device.get_dual_group_mode() and self._device.is_connected()
 
 
-class DischargeWirelessSensors(BinarySensorEntity):
+class DischargeWirelessSensors(CoordinatorEntity, BinarySensorEntity):
     _attr_device_class = BinarySensorDeviceClass.BATTERY
 
     def __init__(self, device: NeptunSmart):
+        super().__init__(device.coordinator)
         self._device = device
         self._attr_unique_id = f"{device.get_name()}_discharge_wireless_sensors"
         self._attr_name = "Разряд батареи радиодатчиков"
@@ -125,10 +130,11 @@ class DischargeWirelessSensors(BinarySensorEntity):
         return self._device.get_discharge_wireless_sensors()
 
 
-class LostWirelessSensors(BinarySensorEntity):
+class LostWirelessSensors(CoordinatorEntity, BinarySensorEntity):
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
 
     def __init__(self, device: NeptunSmart):
+        super().__init__(device.coordinator)
         self._device = device
         self._attr_unique_id = f"{device.get_name()}_lost_wireless_sensors"
         self._attr_name = "Потеря связи с радиодатчиками"
@@ -146,10 +152,11 @@ class LostWirelessSensors(BinarySensorEntity):
         return self._device.get_lost_wireless_sensors()
 
 
-class WiredLineAlertStatus(BinarySensorEntity):
+class WiredLineAlertStatus(CoordinatorEntity, BinarySensorEntity):
     _attr_device_class = BinarySensorDeviceClass.MOISTURE
 
     def __init__(self, device: NeptunSmart, line_number):
+        super().__init__(device.coordinator)
         self._device = device
         self._line_number = line_number
         self._attr_unique_id = f"{device.get_name()}_WiredAlertStatus_line{line_number}"
@@ -169,10 +176,11 @@ class WiredLineAlertStatus(BinarySensorEntity):
         return self._device.get_line_status(line_number=self._line_number)
 
 
-class WirelessSensorAlertStatus(BinarySensorEntity):
+class WirelessSensorAlertStatus(CoordinatorEntity, BinarySensorEntity):
     _attr_device_class = BinarySensorDeviceClass.MOISTURE
 
     def __init__(self, device: NeptunSmart, sensor_number, sensor: WirelessSensor):
+        super().__init__(device.coordinator)
         self._device = device
         self._sensor_number = sensor_number
         self._sensor = sensor
@@ -193,10 +201,11 @@ class WirelessSensorAlertStatus(BinarySensorEntity):
         return self._sensor.get_alert_status()
 
 
-class WirelessSensorDischargeStatus(BinarySensorEntity):
+class WirelessSensorDischargeStatus(CoordinatorEntity, BinarySensorEntity):
     _attr_device_class = BinarySensorDeviceClass.BATTERY
 
     def __init__(self, device: NeptunSmart, sensor_number, sensor: WirelessSensor):
+        super().__init__(device.coordinator)
         self._device = device
         self._sensor_number = sensor_number
         self._sensor = sensor
@@ -217,10 +226,11 @@ class WirelessSensorDischargeStatus(BinarySensorEntity):
         return self._sensor.get_discharge_status()
 
 
-class WirelessSensorLostStatus(BinarySensorEntity):
+class WirelessSensorLostStatus(CoordinatorEntity, BinarySensorEntity):
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
 
     def __init__(self, device: NeptunSmart, sensor_number, sensor: WirelessSensor):
+        super().__init__(device.coordinator)
         self._device = device
         self._sensor_number = sensor_number
         self._sensor = sensor

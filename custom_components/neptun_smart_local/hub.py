@@ -43,9 +43,16 @@ class modbus_hub:
             raise ValueError(f"Не удалось подключиться к устройству: {e}")
 
     async def disconnect(self):
-        if self._client.connected:
-            await self._client.close()
-        self._is_connected = False
+        try:
+            if self._client is not None and getattr(self._client, "connected", False):
+                # Пытаемся закрыть корректно, игнорируя ошибки если процесс уже уничтожен
+                close_task = self._client.close()
+                if asyncio.iscoroutine(close_task):
+                    await close_task
+        except Exception as e:
+            _LOGGER.debug(f"Игнорируем ошибку при отключении клиента: {e}")
+        finally:
+            self._is_connected = False
 
     async def read_holding_register_uint16(self, address, count):
         async with self._request_semaphore:

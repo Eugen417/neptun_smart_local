@@ -1,4 +1,11 @@
+"""Карта регистров Modbus контроллера Neptun Smart."""
+
+from __future__ import annotations
+
+
 class NeptunSmartRegisters:
+    """Адреса Holding-регистров модуля Neptun Smart (Slave/Device ID = 240)."""
+
     module_config = 0
     input_line_1_2_config = 1
     input_line_3_4_config = 2

@@ -1,0 +1,153 @@
+{
+  "config": {
+    "step": {
+      "tcp": {
+        "title": "Connect to Neptun Smart",
+        "description": "Enter the local Modbus TCP parameters of the Neptun Smart module. Note: the module supports only one active TCP connection at a time.",
+        "data": {
+          "name": "Device name",
+          "host_ip": "IP address or hostname",
+          "host_port": "Modbus TCP port",
+          "scan_interval": "Polling interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the Neptun Smart module. Check IP/port and ensure no other Modbus client holds the connection.",
+      "invalid_host": "Enter a valid IP address or hostname",
+      "invalid_port": "Port must be between 1 and 65535"
+    },
+    "abort": {
+      "already_configured": "This Neptun Smart module is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Neptun Smart Connection Settings",
+        "description": "Update IP address, port, or polling interval (5–120 seconds).",
+        "data": {
+          "host_ip": "IP address or hostname",
+          "host_port": "Modbus TCP port",
+          "scan_interval": "Polling interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the specified host and port",
+      "invalid_host": "Enter a valid IP address or hostname",
+      "invalid_port": "Port must be between 1 and 65535"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "system_alarm": {
+        "name": "System alarm"
+      },
+      "first_group_leak": {
+        "name": "Zone 1 water leak"
+      },
+      "second_group_leak": {
+        "name": "Zone 2 water leak"
+      },
+      "wireless_sensors_battery_low": {
+        "name": "Wireless sensors battery low"
+      },
+      "wireless_sensors_lost": {
+        "name": "Wireless sensors connection lost"
+      },
+      "wired_line_leak": {
+        "name": "Wired line {number} water leak"
+      },
+      "wireless_sensor_leak": {
+        "name": "Wireless sensor {number} water leak"
+      },
+      "wireless_sensor_battery_low": {
+        "name": "Wireless sensor {number} battery low"
+      },
+      "wireless_sensor_lost": {
+        "name": "Wireless sensor {number} connection lost"
+      }
+    },
+    "sensor": {
+      "wireless_sensors_connected": {
+        "name": "Connected wireless sensors"
+      },
+      "wireless_sensor_battery": {
+        "name": "Wireless sensor {number} battery"
+      },
+      "wireless_sensor_signal": {
+        "name": "Wireless sensor {number} signal level"
+      },
+      "water_counter": {
+        "name": "Water meter {slot}-{channel} ({address})"
+      }
+    },
+    "switch": {
+      "valve_zone_1": {
+        "name": "Zone 1 valve"
+      },
+      "valve_zone_2": {
+        "name": "Zone 2 valve"
+      },
+      "floor_washing_mode": {
+        "name": "Floor washing mode"
+      },
+      "pairing_mode": {
+        "name": "Wireless sensors pairing mode"
+      },
+      "dual_group_mode": {
+        "name": "Dual zone mode"
+      },
+      "close_valve_on_sensor_loss": {
+        "name": "Close valves on sensor loss"
+      },
+      "lock_buttons": {
+        "name": "Lock buttons"
+      }
+    },
+    "select": {
+      "line_type": {
+        "name": "Line {number} type",
+        "state": {
+          "sensor": "Sensor",
+          "button": "Button"
+        }
+      },
+      "line_group": {
+        "name": "Line {number} zone",
+        "state": {
+          "group_1": "First",
+          "group_2": "Second",
+          "both": "Both"
+        }
+      },
+      "relay_on_valve_close": {
+        "name": "Relay on valve close",
+        "state": {
+          "none": "Do not switch",
+          "group_1": "First zone",
+          "group_2": "Second zone",
+          "both": "Both zones"
+        }
+      },
+      "relay_on_alarm": {
+        "name": "Relay on alarm",
+        "state": {
+          "none": "Do not switch",
+          "group_1": "First zone",
+          "group_2": "Second zone",
+          "both": "Both zones"
+        }
+      },
+      "wireless_sensor_group": {
+        "name": "Wireless sensor {number} zone",
+        "state": {
+          "group_1": "First",
+          "group_2": "Second",
+          "both": "Both"
+        }
+      }
+    }
+  }
+}

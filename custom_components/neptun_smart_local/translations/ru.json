@@ -1,0 +1,153 @@
+{
+  "config": {
+    "step": {
+      "tcp": {
+        "title": "Подключение Neptun Smart",
+        "description": "Укажите локальные параметры Modbus TCP модуля Neptun Smart. Внимание: модуль одновременно поддерживает только одно TCP-соединение.",
+        "data": {
+          "name": "Название устройства",
+          "host_ip": "IP-адрес или хост",
+          "host_port": "Порт Modbus TCP",
+          "scan_interval": "Интервал опроса (сек)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Не удалось подключиться к модулю Neptun Smart. Проверьте IP/порт и убедитесь, что соединение не занято другой интеграцией.",
+      "invalid_host": "Укажите корректный IP-адрес или имя хоста",
+      "invalid_port": "Порт должен быть в диапазоне 1–65535"
+    },
+    "abort": {
+      "already_configured": "Этот контроллер Neptun Smart уже настроен"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Параметры подключения Neptun Smart",
+        "description": "Изменение IP-адреса, порта или интервала опроса (5–120 секунд).",
+        "data": {
+          "host_ip": "IP-адрес или хост",
+          "host_port": "Порт Modbus TCP",
+          "scan_interval": "Интервал опроса (сек)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Не удалось подключиться к указанному адресу и порту",
+      "invalid_host": "Укажите корректный IP-адрес или имя хоста",
+      "invalid_port": "Порт должен быть в диапазоне 1–65535"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "system_alarm": {
+        "name": "Общая тревога"
+      },
+      "first_group_leak": {
+        "name": "Протечка 1 группы"
+      },
+      "second_group_leak": {
+        "name": "Протечка 2 группы"
+      },
+      "wireless_sensors_battery_low": {
+        "name": "Разряд батареи радиодатчиков"
+      },
+      "wireless_sensors_lost": {
+        "name": "Потеря связи с радиодатчиками"
+      },
+      "wired_line_leak": {
+        "name": "Протечка проводной линии {number}"
+      },
+      "wireless_sensor_leak": {
+        "name": "Протечка радиодатчика {number}"
+      },
+      "wireless_sensor_battery_low": {
+        "name": "Разряд батареи радиодатчика {number}"
+      },
+      "wireless_sensor_lost": {
+        "name": "Потеря связи с радиодатчиком {number}"
+      }
+    },
+    "sensor": {
+      "wireless_sensors_connected": {
+        "name": "Подключено радиодатчиков"
+      },
+      "wireless_sensor_battery": {
+        "name": "Заряд батареи радиодатчика {number}"
+      },
+      "wireless_sensor_signal": {
+        "name": "Уровень сигнала радиодатчика {number}"
+      },
+      "water_counter": {
+        "name": "Счётчик воды {slot}-{channel} ({address})"
+      }
+    },
+    "switch": {
+      "valve_zone_1": {
+        "name": "Вентиль 1 зоны"
+      },
+      "valve_zone_2": {
+        "name": "Вентиль 2 зоны"
+      },
+      "floor_washing_mode": {
+        "name": "Режим мойки пола"
+      },
+      "pairing_mode": {
+        "name": "Режим сопряжения радиодатчиков"
+      },
+      "dual_group_mode": {
+        "name": "Двухзонный режим"
+      },
+      "close_valve_on_sensor_loss": {
+        "name": "Закрывать краны при потере связи"
+      },
+      "lock_buttons": {
+        "name": "Блокировка кнопок"
+      }
+    },
+    "select": {
+      "line_type": {
+        "name": "Тип линии {number}",
+        "state": {
+          "sensor": "Датчик",
+          "button": "Кнопка"
+        }
+      },
+      "line_group": {
+        "name": "Группа линии {number}",
+        "state": {
+          "group_1": "Первая",
+          "group_2": "Вторая",
+          "both": "Обе"
+        }
+      },
+      "relay_on_valve_close": {
+        "name": "Реле при закрытии кранов",
+        "state": {
+          "none": "Не срабатывать",
+          "group_1": "Первая группа",
+          "group_2": "Вторая группа",
+          "both": "Обе группы"
+        }
+      },
+      "relay_on_alarm": {
+        "name": "Реле при тревоге",
+        "state": {
+          "none": "Не срабатывать",
+          "group_1": "Первая группа",
+          "group_2": "Вторая группа",
+          "both": "Обе группы"
+        }
+      },
+      "wireless_sensor_group": {
+        "name": "Группа радиодатчика {number}",
+        "state": {
+          "group_1": "Первая",
+          "group_2": "Вторая",
+          "both": "Обе"
+        }
+      }
+    }
+  }
+}

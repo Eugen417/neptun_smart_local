@@ -1,118 +1,171 @@
+"""Сенсоры контроллера Neptun Smart."""
+
 from __future__ import annotations
 
-from collections import namedtuple
-from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from typing import Any
+
 from homeassistant.components.sensor import (
+    RestoreSensor,
     SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.const import (UnitOfVolume, PERCENTAGE)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import PERCENTAGE, UnitOfVolume
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
 from .const import DOMAIN
-from .device import NeptunSmart, WirelessSensor, Counter
+from .coordinator import NeptunSmartCoordinator
+from .device import Counter, WirelessSensor
+from .entity import NeptunEntity
 
 
-async def async_setup_entry(HomeAssistant, config_entry, async_add_entities):
-    device: NeptunSmart = HomeAssistant.data[DOMAIN][config_entry.entry_id]
-    sensors = []
-    sensors.append(WirelessSensorsConnected(device=device))
-    for i in range(0, device.get_number_of_connected_wireless_sensors()):
-        sensors.append(WirelessSensorsBatteryLevel(device, i+1, device.wireless_sensors[i]))
-        sensors.append(WirelessSensorsSignalLevel(device, i+1, device.wireless_sensors[i]))
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Регистрация сенсоров Neptun Smart."""
+    coordinator: NeptunSmartCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    device = coordinator.device
+
+    sensors: list[SensorEntity] = [WirelessSensorsConnected(coordinator)]
+    for idx, wireless in enumerate(device.wireless_sensors, start=1):
+        sensors.append(WirelessSensorsBatteryLevel(coordinator, idx, wireless))
+        sensors.append(WirelessSensorsSignalLevel(coordinator, idx, wireless))
+
     for counter in device.counters:
-        sensors.append(CounterSensor(device, counter))
-    async_add_entities(sensors, update_before_add=False)
+        sensors.append(CounterSensor(coordinator, counter))
+
+    async_add_entities(sensors)
 
 
-class WirelessSensorsConnected(CoordinatorEntity, SensorEntity):
-    def __init__(self, device: NeptunSmart):
-        super().__init__(device.coordinator)
-        self._device = device
-        self._attr_unique_id = f"{device.get_name()}_Wireless_sensors_connected"
-        self._attr_name = "Подключено радиодатчиков"
-        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+class WirelessSensorsConnected(NeptunEntity, SensorEntity):
+    """Количество привязанных беспроводных датчиков."""
+
+    _attr_translation_key = "wireless_sensors_connected"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:sun-wireless-outline"
+
+    def __init__(self, coordinator: NeptunSmartCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{self._device.get_name()}_Wireless_sensors_connected"
 
     @property
-    def native_value(self):
+    def native_value(self) -> int:
         return self._device.get_number_of_connected_wireless_sensors()
 
-    @property
-    def device_info(self):
-        return {"identifiers": {(DOMAIN, self._device.get_name())}}
 
-    @property
-    def icon(self):
-        return "mdi:sun-wireless-outline"
+class WirelessSensorsBatteryLevel(NeptunEntity, SensorEntity):
+    """Заряд батареи беспроводного датчика."""
 
+    _attr_translation_key = "wireless_sensor_battery"
+    _attr_device_class = SensorDeviceClass.BATTERY
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-class WirelessSensorsBatteryLevel(CoordinatorEntity, SensorEntity):
-    def __init__(self, device: NeptunSmart, sensor_number, sensor: WirelessSensor):
-        super().__init__(device.coordinator)
-        self._device = device
-        self._sensor_number = sensor_number
+    def __init__(
+        self,
+        coordinator: NeptunSmartCoordinator,
+        sensor_number: int,
+        sensor: WirelessSensor,
+    ) -> None:
+        super().__init__(coordinator)
         self._sensor = sensor
-        self._attr_unique_id = f"{device.get_name()}_WirelessSensors{sensor_number}BatteryLevel"
-        self._attr_name = f"Заряд батареи радиодатчика {sensor_number}"
-        self._attr_device_class = SensorDeviceClass.BATTERY
-        self._attr_native_unit_of_measurement = PERCENTAGE
-        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_unique_id = (
+            f"{self._device.get_name()}_WirelessSensors{sensor_number}BatteryLevel"
+        )
+        self._attr_translation_placeholders = {"number": str(sensor_number)}
 
     @property
-    def native_value(self):
+    def native_value(self) -> int:
         return self._sensor.get_battery_level()
 
-    @property
-    def device_info(self):
-        return {"identifiers": {(DOMAIN, self._device.get_name())}}
 
-    @property
-    def icon(self):
-        return "mdi:battery-high"
+class WirelessSensorsSignalLevel(NeptunEntity, SensorEntity):
+    """Уровень радиосигнала беспроводного датчика."""
 
+    _attr_translation_key = "wireless_sensor_signal"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:signal"
 
-class WirelessSensorsSignalLevel(CoordinatorEntity, SensorEntity):
-    def __init__(self, device: NeptunSmart, sensor_number, sensor: WirelessSensor):
-        super().__init__(device.coordinator)
-        self._device = device
-        self._sensor_number = sensor_number
+    def __init__(
+        self,
+        coordinator: NeptunSmartCoordinator,
+        sensor_number: int,
+        sensor: WirelessSensor,
+    ) -> None:
+        super().__init__(coordinator)
         self._sensor = sensor
-        self._attr_unique_id = f"{device.get_name()}_WirelessSensors{sensor_number}SignalLevel"
-        self._attr_name = f"Уровень сигнала радиодатчика {sensor_number}"
-        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_unique_id = (
+            f"{self._device.get_name()}_WirelessSensors{sensor_number}SignalLevel"
+        )
+        self._attr_translation_placeholders = {"number": str(sensor_number)}
 
     @property
-    def native_value(self):
+    def native_value(self) -> int:
         return self._sensor.get_signal_level()
 
-    @property
-    def device_info(self):
-        return {"identifiers": {(DOMAIN, self._device.get_name())}}
 
-    @property
-    def icon(self):
-        return "mdi:signal"
+class CounterSensor(NeptunEntity, RestoreSensor):
+    """Сенсор импульсного счётчика воды с защитой от нулевых провалов при рестарте."""
 
+    _attr_translation_key = "water_counter"
+    _attr_native_unit_of_measurement = UnitOfVolume.CUBIC_METERS
+    _attr_suggested_display_precision = 3
+    _attr_device_class = SensorDeviceClass.WATER
+    _attr_state_class = SensorStateClass.TOTAL
+    _attr_icon = "mdi:counter"
 
-class CounterSensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, device: NeptunSmart, counter: Counter):
-        super().__init__(device.coordinator)
-        self._device = device
+    def __init__(
+        self, coordinator: NeptunSmartCoordinator, counter: Counter
+    ) -> None:
+        super().__init__(coordinator)
         self._counter = counter
-        self._attr_unique_id = f"{device.get_name()}_Counter{counter.get_address()}"
-        self._attr_name = f"Счетчик воды {counter.get_address()}"
-        self._attr_native_unit_of_measurement = UnitOfVolume.CUBIC_METERS
-        self._attr_device_class = SensorDeviceClass.WATER
-        self._attr_state_class = SensorStateClass.TOTAL_INCREASING
+        self._attr_unique_id = (
+            f"{self._device.get_name()}_Counter{counter.get_address()}"
+        )
+        self._attr_translation_placeholders = {
+            "slot": str(counter.slot_number),
+            "channel": str(counter.channel_number),
+            "address": str(counter.get_address()),
+        }
+
+    async def async_added_to_hass(self) -> None:
+        """Восстанавливает последнее ненулевое показание из базы HA при перезагрузке."""
+        await super().async_added_to_hass()
+        last_data = await self.async_get_last_sensor_data()
+        if last_data is not None and last_data.native_value is not None:
+            try:
+                val = float(last_data.native_value)
+                if last_data.native_unit_of_measurement == UnitOfVolume.LITERS:
+                    restored_liters = round(val)
+                else:
+                    restored_liters = round(val * 1000)
+                self._counter.restore_value_liters(restored_liters)
+            except (TypeError, ValueError):
+                pass
 
     @property
-    def native_value(self):
-        return self._counter.get_value() / 1000
+    def available(self) -> bool:
+        return super().available and self._counter.get_value_liters() is not None
 
     @property
-    def device_info(self):
-        return {"identifiers": {(DOMAIN, self._device.get_name())}}
+    def native_value(self) -> float | None:
+        return self._counter.get_value_m3()
 
     @property
-    def icon(self):
-        return "mdi:counter"
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            "slot": self._counter.slot_number,
+            "channel": self._counter.channel_number,
+            "modbus_register": self._counter.get_address(),
+            "pulse_step_liters": self._counter.step_liters,
+            "filtered_zero_glitches": self._counter.rejected_zero_count,
+        }
+

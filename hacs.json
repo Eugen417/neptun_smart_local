@@ -1,5 +1,7 @@
 {
-  "name": "Neptun Smart Local integration",
+  "name": "Neptun Smart Local",
   "homeassistant": "2025.2.0",
+  "render_readme": true,
   "country": "RU"
 }
+

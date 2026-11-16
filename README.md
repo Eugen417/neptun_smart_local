@@ -1,7 +1,7 @@
 # Neptun Smart Local (Home Assistant Integration)
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Eugen417&repository=neptun_smart_local&category=integration)
+
 
 Локальная интеграция для подключения контроллеров защиты от протечек воды **Neptun Smart / Neptun Smart+** к **Home Assistant** напрямую по протоколу **Modbus TCP** (без облака).
 
@@ -40,6 +40,8 @@
 ---
 
 ## Установка
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Eugen417&repository=neptun_smart_local&category=integration)
 
 ### Вариант 1: Через HACS (рекомендуется)
 

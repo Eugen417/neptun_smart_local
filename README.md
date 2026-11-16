@@ -41,9 +41,11 @@
 
 ## Установка
 
+### Вариант 2: Автоматическая
+
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Eugen417&repository=neptun_smart_local&category=integration)
 
-### Вариант 1: Через HACS (рекомендуется)
+### Вариант 2: Через HACS/Marketplace
 
 1. Откройте **HACS** → **Интеграции** → меню `⋮` (справа сверху) → **Пользовательские репозитории**.
 2. Вставьте ссылку на репозиторий:
@@ -56,7 +58,7 @@
 5. Перейдите в **Настройки** → **Устройства и службы** → **Добавить интеграцию** → найдите **Neptun Smart Local**.
 6. Укажите название устройства, локальный IP-адрес модуля, порт (`503` по умолчанию) и интервал опроса (`10` сек по умолчанию).
 
-### Вариант 2: Вручную
+### Вариант 3: Вручную
 
 1. Скопируйте папку `custom_components/neptun_smart_local` из этого репозитория в каталог `config/custom_components/` вашего сервера Home Assistant.
 2. Перезагрузите Home Assistant.

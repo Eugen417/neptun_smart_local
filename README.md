@@ -41,7 +41,7 @@
 
 ## Установка
 
-### Вариант 2: Автоматическая
+### Вариант 1: Автоматическая
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Eugen417&repository=neptun_smart_local&category=integration)
 
